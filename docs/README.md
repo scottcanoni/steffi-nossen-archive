@@ -162,7 +162,8 @@ RAID is not backup. Mirroring protects against a dead drive, not against deletio
 steffi-nossen-archive/
 ├── README.md                          # Project overview, quickstart
 ├── .env.example                       # Template for all config variables
-├── docker-compose.yml                 # Nextcloud AIO deployment
+├── docker-compose.yml                 # Nextcloud AIO deployment (production)
+├── docker-compose.local.yml           # Local testing (no SSL, no domain)
 │
 ├── scripts/
 │   ├── provision/
@@ -180,6 +181,7 @@ steffi-nossen-archive/
 │
 └── docs/
     ├── README.md                      # This file (full build plan)
+    ├── QUICKSTART.md                  # Local testing guide (start here!)
     ├── HARDWARE.md                    # Disk layout, RAM, UPS requirements
     ├── NETWORK.md                     # Static IP, port forwarding, SSL
     ├── PERMISSIONS.md                 # Roles, groups, folder ACLs, share policies

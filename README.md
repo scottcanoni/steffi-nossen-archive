@@ -31,22 +31,50 @@ Provide a low-cost, durable, folder-based archive for photos, videos, documents,
 steffi-nossen-archive/
 ├── README.md                 # This file
 ├── .env.example              # Template for all config variables
-├── docker-compose.yml        # Nextcloud AIO deployment
+├── docker-compose.yml        # Nextcloud AIO deployment (production)
+├── docker-compose.local.yml  # Local testing (no SSL, no domain)
 ├── scripts/
 │   ├── provision/
-│   │   ├── 01-base-setup.sh
-│   │   ├── 02-raid-setup.sh
+│   │   ├── 01-base-setup.sh  # Ubuntu baseline, firewall, essentials
+│   │   ├── 02-raid-setup.sh  # mdadm RAID1 creation
 │   │   ├── 03-docker-install.sh
 │   │   └── 04-deploy-nextcloud.sh
-│   ├── index-media.sh
-│   ├── setup-previews.sh
-│   └── backup.sh
+│   ├── index-media.sh        # Memories + preview + search indexing
+│   ├── setup-previews.sh     # Preview Generator configuration
+│   └── backup.sh             # USB backup + verification
 ├── config/
-│   └── custom.config.php
-└── docs/                     # Full project plan and operational docs
-    └── README.md             # Detailed build plan
+│   └── custom.config.php     # PHP performance overrides
+└── docs/
+    ├── README.md              # Full build plan + architecture diagram
+    ├── QUICKSTART.md          # Local testing guide (start here!)
+    ├── HARDWARE.md            # Disk layout, RAM, UPS, drive selection
+    ├── NETWORK.md             # Static IP, port forwarding, SSL, DNS
+    ├── PERMISSIONS.md         # Roles, groups, Team Folders, ACLs
+    ├── APPS.md                # App install order, config, cron schedule
+    ├── BACKUP.md              # 3-2-1 strategy, USB rotation, restore
+    ├── RUNBOOK.md             # User management, monitoring, upgrades
+    └── PRIVACY.md             # Minors policy, EXIF stripping, consent
 ```
 
-## Getting Started
+## Where to Begin
 
-See [docs/README.md](docs/README.md) for the full project plan, architecture diagrams, hardware requirements, folder structure, permissions model, app stack, backup strategy, and build phase details.
+Don't have the server hardware yet? Start here:
+
+1. **Try it locally**: [docs/QUICKSTART.md](docs/QUICKSTART.md) walks you through running a test instance on your own computer using Docker. You can explore Nextcloud, create groups, test permissions, and install apps -- all before the real server exists.
+2. **Get the domain name** (e.g., `archive.steffinossen.org`) and confirm DNS access.
+3. **Confirm the static IP** with the ISP at the building where the server will live.
+4. **Test upload speed** from that building -- video streaming depends on it.
+5. **Order hardware**: See [docs/HARDWARE.md](docs/HARDWARE.md) for what to buy.
+6. **Decide the privacy policy**: The board should review [docs/PRIVACY.md](docs/PRIVACY.md) before launch, especially regarding minors.
+
+## Production Deployment
+
+Once the hardware arrives and Ubuntu is installed:
+
+1. **Read the plan**: [docs/README.md](docs/README.md) covers the full architecture, folder structure, permissions model, and build phases.
+2. **Provision the server**: Run the scripts in `scripts/provision/` in order (01 through 04).
+3. **Set up the network**: [docs/NETWORK.md](docs/NETWORK.md) covers static IP, DNS, and port forwarding.
+4. **Configure permissions**: Follow [docs/PERMISSIONS.md](docs/PERMISSIONS.md) to create groups and Team Folders.
+5. **Install apps**: Follow [docs/APPS.md](docs/APPS.md) for the phased app installation.
+6. **Set up backups**: Follow [docs/BACKUP.md](docs/BACKUP.md) for USB rotation and scheduling.
+7. **Operate**: [docs/RUNBOOK.md](docs/RUNBOOK.md) covers day-to-day administration.

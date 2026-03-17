@@ -1,0 +1,41 @@
+# Local testing only -- NOT for production.
+#
+# This runs Nextcloud AIO without Caddy or SSL, using AIO's built-in
+# self-signed certificate. Use this to explore Nextcloud, test permissions,
+# install apps, and validate the archive workflow before the real server
+# hardware arrives.
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d
+#
+# Access:
+#   AIO Dashboard:  https://localhost:8080  (accept the self-signed cert warning)
+#   Nextcloud:      https://localhost:8443  (after completing AIO setup)
+
+name: nextcloud-aio-local
+
+services:
+  nextcloud-aio-mastercontainer:
+    image: ghcr.io/nextcloud-releases/all-in-one:latest
+    init: true
+    restart: always
+    container_name: nextcloud-aio-mastercontainer
+    volumes:
+      - nextcloud_aio_mastercontainer:/mnt/docker-aio-config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    network_mode: bridge
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      SKIP_DOMAIN_VALIDATION: "true"
+      NEXTCLOUD_DATADIR: nextcloud_aio_nextcloud_data
+      NEXTCLOUD_UPLOAD_LIMIT: 16G
+      NEXTCLOUD_MAX_TIME: 3600
+      NEXTCLOUD_MEMORY_LIMIT: 2048M
+      TZ: America/New_York
+
+volumes:
+  nextcloud_aio_mastercontainer:
+    name: nextcloud_aio_mastercontainer
