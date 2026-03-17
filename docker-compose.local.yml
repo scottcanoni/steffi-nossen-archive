@@ -1,16 +1,14 @@
 # Local testing only -- NOT for production.
 #
-# This runs Nextcloud AIO without Caddy or SSL, using AIO's built-in
-# self-signed certificate. Use this to explore Nextcloud, test permissions,
-# install apps, and validate the archive workflow before the real server
-# hardware arrives.
+# This runs Nextcloud AIO behind a local Caddy reverse proxy with
+# self-signed certificates. No real domain or internet access required.
 #
-# Usage:
-#   docker compose -f docker-compose.local.yml up -d
-#
-# Access:
-#   AIO Dashboard:  https://localhost:8080  (accept the self-signed cert warning)
-#   Nextcloud:      https://localhost:8443  (after completing AIO setup)
+# Setup:
+#   1. Add to your hosts file:  127.0.0.1  archive.local
+#   2. Run:  docker compose -f docker-compose.local.yml up -d
+#   3. Open:  https://localhost:8080  (AIO dashboard, accept cert warning)
+#   4. Enter domain:  archive.local
+#   5. After AIO starts containers, open:  https://archive.local  (accept cert warning)
 
 name: nextcloud-aio-local
 
@@ -25,17 +23,45 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     network_mode: bridge
     ports:
-      - "80:80"
       - "8080:8080"
-      - "8443:8443"
     environment:
       SKIP_DOMAIN_VALIDATION: "true"
-      NEXTCLOUD_DATADIR: nextcloud_aio_nextcloud_data
+      APACHE_PORT: 11000
+      APACHE_IP_BINDING: 0.0.0.0
+      NEXTCLOUD_DATADIR: nextcloud_aio_nextcloud_datadir
       NEXTCLOUD_UPLOAD_LIMIT: 16G
       NEXTCLOUD_MAX_TIME: 3600
       NEXTCLOUD_MEMORY_LIMIT: 2048M
       TZ: America/New_York
 
+  caddy:
+    image: caddy:alpine
+    restart: always
+    container_name: caddy-local
+    ports:
+      - "443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    configs:
+      - source: Caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy_data_local:/data
+      - caddy_config_local:/config
+
+configs:
+  Caddyfile:
+    content: |
+      {
+        auto_https disable_redirects
+      }
+      archive.local {
+        tls internal
+        reverse_proxy host.docker.internal:11000
+      }
+
 volumes:
   nextcloud_aio_mastercontainer:
     name: nextcloud_aio_mastercontainer
+  caddy_data_local:
+  caddy_config_local:

@@ -184,7 +184,28 @@ watch cat /proc/mdstat
 
 The server stays operational during the rebuild. No restore needed.
 
-### Scenario 2: Both Drives Fail / Server Loss
+### Scenario 2: Machine Dies, Data Drives Are Fine
+
+If the server hardware fails but the RAID1 data drives are intact:
+
+1. Get any replacement machine
+2. Install Ubuntu Server 24.04 LTS on a new SSD
+3. Clone this repo and run the provisioning scripts:
+   ```bash
+   sudo ./scripts/provision/01-base-setup.sh
+   sudo ./scripts/provision/02a-raid-recover.sh   # detects and mounts existing RAID
+   sudo ./scripts/provision/03-docker-install.sh
+   sudo ./scripts/provision/04-deploy-nextcloud.sh
+   ```
+4. Complete the AIO setup wizard, restore from Borg backup if available, or run a file scan:
+   ```bash
+   docker exec --user www-data nextcloud-aio-nextcloud php occ files:scan --all
+   docker exec --user www-data nextcloud-aio-nextcloud php occ memories:index
+   ```
+
+The RAID1 array is self-describing. The `02a-raid-recover.sh` script finds it automatically regardless of which machine the drives are installed in.
+
+### Scenario 3: Both Drives Fail / Server Loss
 
 Full restore from USB backup:
 
@@ -211,7 +232,7 @@ Full restore from USB backup:
    docker exec --user www-data nextcloud-aio-nextcloud php occ memories:index
    ```
 
-### Scenario 3: Accidental Deletion
+### Scenario 4: Accidental Deletion
 
 If files were accidentally deleted:
 

@@ -66,13 +66,13 @@ Filesystem: ext4 on all volumes.
 
 These are the top-level Team Folders that define the archive's browsing experience:
 
-| Folder | Purpose |
-|---|---|
-| **Public** | Content cleared for public sharing via links |
-| **Archive** | Long-term organized archive (by year, event, type) |
-| **Uploads** | Intake folders where editors deposit new material |
+| Folder         | Purpose                                              |
+|----------------|------------------------------------------------------|
+| **Public**     | Content cleared for public sharing via links         |
+| **Archive**    | Long-term organized archive (by year, event, type)   |
+| **Uploads**    | Intake folders where editors deposit new material    |
 | **Restricted** | Sensitive content (minors, internal, rights-unclear) |
-| **Admin** | Governance docs, backup keys, procedures |
+| **Admin**      | Governance docs, backup keys, procedures             |
 
 Subfolders within Archive follow a convention like `Archive/YYYY/Event-Name/` or `Archive/YYYY/Type/`.
 

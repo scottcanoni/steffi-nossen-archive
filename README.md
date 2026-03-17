@@ -36,7 +36,8 @@ steffi-nossen-archive/
 ├── scripts/
 │   ├── provision/
 │   │   ├── 01-base-setup.sh  # Ubuntu baseline, firewall, essentials
-│   │   ├── 02-raid-setup.sh  # mdadm RAID1 creation
+│   │   ├── 02-raid-setup.sh  # mdadm RAID1 creation (new drives)
+│   │   ├── 02a-raid-recover.sh # Detect existing RAID (machine swap)
 │   │   ├── 03-docker-install.sh
 │   │   └── 04-deploy-nextcloud.sh
 │   ├── index-media.sh        # Memories + preview + search indexing
