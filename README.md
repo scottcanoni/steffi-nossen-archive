@@ -1,10 +1,12 @@
+![Steffi Nossen Media Archive](https://www.steffinossen.org/wp-content/uploads/2022/10/SteffiUPDATEDLogo_July2022_SteffiBlue.svg "Steffi Nossen Media Archive")
+
 # Steffi Nossen Media Archive
 
 A self-hosted photo and video archive for the Steffi Nossen School of Dance, built on [Immich](https://immich.app) running on Ubuntu Server 24.04 LTS.
 
 ## Goal
 
-Provide a low-cost, durable archive for photos and videos - accessible to staff, alumni, parents, students and the public through role-based granted access, with no recurring cloud fees, as minimal maintenance as possible and portable to a new server easily.
+Provide a low-cost, durable archive for photos and videos - accessible to staff, alumni, parents, students, and the public through controlled, role-based access, with no recurring cloud fees, minimal maintenance, and easy portability to a new server.
 
 ## Architecture at a Glance
 
