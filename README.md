@@ -4,7 +4,7 @@ A self-hosted photo and video archive for the Steffi Nossen School of Dance, bui
 
 ## Goal
 
-Provide a low-cost, durable archive for photos and videos -- accessible to staff, alumni, and the public through role-based access, with no recurring cloud fees.
+Provide a low-cost, durable archive for photos and videos - accessible to staff, alumni, parents, students and the public through role-based granted access, with no recurring cloud fees, as minimal maintenance as possible and portable to a new server easily.
 
 ## Architecture at a Glance
 
