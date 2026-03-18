@@ -14,73 +14,38 @@ Day-to-day administration procedures for the Steffi Nossen Media Archive.
 
 ## User Management
 
-All commands use the `occ` CLI inside the Nextcloud container:
-
-```bash
-OCC="docker exec --user www-data nextcloud-aio-nextcloud php occ"
-```
-
 ### Add a New User
 
-```bash
-# Create the user (you will be prompted for a password)
-$OCC user:add --display-name "Jane Smith" jsmith
+1. Log in as admin
+2. Go to **Administration** (gear icon) > **User Management**
+3. Click **Create User**
+4. Fill in name, email, and password
+5. The user can log in and start uploading immediately
 
-# Add to the appropriate group
-$OCC group:adduser viewers-private jsmith
-```
-
-After creation:
-1. Email them their credentials
-2. If they are in an editor or admin group, they will be prompted to set up 2FA on first login
-3. They will automatically see all Team Folders assigned to their group(s)
-
-### Add a New Editor
-
-```bash
-$OCC user:add --display-name "Carlos Rivera" crivera
-$OCC group:adduser editors-uploads crivera
-```
-
-Editors can only write to `Uploads/` subfolders. They are required to set up 2FA.
-
-### Add a New Admin
-
-```bash
-$OCC user:add --display-name "Sarah Chen" schen
-$OCC group:adduser admins schen
-```
-
-Keep the admin group very small (2-3 people maximum).
+Or share specific albums with them if they should only have viewing access.
 
 ### Disable a User
 
-```bash
-$OCC user:disable jsmith
-```
+1. Go to **Administration** > **User Management**
+2. Find the user
+3. Click the options menu and select **Disable**
 
-This preserves their data but prevents login. Use this instead of deleting users.
+Disabled users cannot log in, but their data is preserved.
 
 ### Delete a User
 
-```bash
-# Only if you are sure their data is no longer needed
-$OCC user:delete jsmith
-```
+1. Go to **Administration** > **User Management**
+2. Find the user
+3. Click the options menu and select **Delete**
 
-### List All Users and Their Groups
-
-```bash
-$OCC user:list
-$OCC group:list
-$OCC group:listmembers viewers-private
-```
+Use disable instead of delete when possible -- deleting removes their uploaded content.
 
 ### Reset a User's Password
 
-```bash
-$OCC user:resetpassword jsmith
-```
+1. Go to **Administration** > **User Management**
+2. Find the user
+3. Click the options menu and select **Reset Password**
+4. Communicate the new password to the user
 
 ---
 
@@ -90,12 +55,12 @@ $OCC user:resetpassword jsmith
 
 ```bash
 # Docker container status
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker ps --format "table {{.Names}}\t{{.Status}}"
 
 # Disk usage
 df -h /mnt/archive /mnt/usb-backup
 
-# RAID array health
+# RAID array health (if applicable)
 cat /proc/mdstat
 
 # Drive SMART status
@@ -103,34 +68,30 @@ smartctl -a /dev/sda
 smartctl -a /dev/sdb
 ```
 
-### Nextcloud Status
+### Immich Status
 
-```bash
-OCC="docker exec --user www-data nextcloud-aio-nextcloud php occ"
-
-# System status
-$OCC status
-
-# Check for warnings
-$OCC check
-
-# Storage usage by user
-$OCC user:list --info
-```
+Open the Immich web interface and go to **Administration** > **Server Info** to see:
+- Total photos and videos
+- Storage usage
+- Active users
 
 ### Log Files
 
 ```bash
-# Nextcloud application log
-docker exec nextcloud-aio-nextcloud cat /var/www/html/data/nextcloud.log | tail -50
+# Immich server logs
+docker logs immich_server --tail 50
 
-# Docker container logs
-docker logs nextcloud-aio-nextcloud --tail 50
-docker logs nextcloud-aio-database --tail 50
+# Machine learning logs
+docker logs immich_machine_learning --tail 50
+
+# Database logs
+docker logs immich_postgres --tail 50
+
+# Caddy (SSL proxy) logs
 docker logs caddy --tail 50
 
 # Backup log
-tail -50 /var/log/nextcloud-backup.log
+tail -50 /var/log/immich-backup.log
 
 # System log
 journalctl -u docker --since "1 hour ago"
@@ -150,45 +111,38 @@ Restart the service: `systemctl restart smartd`
 
 ### Monthly Health Check
 
-Run this checklist monthly (ideally during the USB backup rotation):
-
 - [ ] All Docker containers are running (`docker ps`)
-- [ ] RAID array is healthy (`cat /proc/mdstat`)
+- [ ] RAID array is healthy (if applicable)
 - [ ] SMART status is OK on all drives
 - [ ] Disk usage is below 80% on data and boot drives
 - [ ] Backup log shows recent successful runs
 - [ ] USB rotation was performed this month
-- [ ] No critical entries in Nextcloud log
 - [ ] SSL certificate is valid and not expiring soon
-- [ ] All admin accounts still have working 2FA
+- [ ] Admin account is accessible
 
 ---
 
 ## Upgrades
 
-### Nextcloud AIO Updates
+### Immich Updates
 
-AIO manages its own updates through the dashboard. The master container automatically checks for updates.
+Immich releases are tagged container images. To update:
 
-1. Open the AIO dashboard at `https://<server-ip>:8080`
-2. If an update is available, the dashboard will show it
-3. **Before updating**, run a backup:
+1. **Backup first**:
    ```bash
    sudo /opt/steffi-nossen-archive/scripts/backup.sh
    ```
-4. Click **Start update** in the AIO dashboard
-5. Wait for all containers to restart
-6. Verify the instance is working
 
-### Manual Container Update
+2. **Pull new images and restart**:
+   ```bash
+   cd /opt/steffi-nossen-archive
+   docker compose pull
+   docker compose up -d
+   ```
 
-If the dashboard is unresponsive:
+3. **Verify the instance is working**: Open the web UI and confirm photos load and search works.
 
-```bash
-cd /opt/steffi-nossen-archive
-docker compose pull
-docker compose up -d
-```
+To pin a specific version, set `IMMICH_VERSION=v1.x.x` in `.env` instead of `release`.
 
 ### Ubuntu System Updates
 
@@ -205,72 +159,45 @@ sudo reboot
 
 ### Docker Engine Updates
 
-Follow Docker's official upgrade instructions. Generally:
-
 ```bash
 sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
-```
-
-### App Updates
-
-Individual Nextcloud apps are updated through the web interface:
-
-1. Go to **Apps** in the top menu
-2. Click **Updates** in the sidebar
-3. Review and update apps one at a time
-4. Check that nothing broke after each update
-
-Or via CLI:
-
-```bash
-$OCC app:update --all
 ```
 
 ---
 
 ## Common Tasks
 
-### Move Files from Uploads to Archive
+### Import Existing Photos from Disk
 
-This is the core workflow: editors upload to `Uploads/`, admins curate into `Archive/`.
+If you have a folder of photos on a USB drive or network share:
 
-1. Log in as an admin
-2. Navigate to the `Uploads/Incoming/` folder
-3. Review new content
-4. Add metadata via MetaVox (event name, year, photographer, etc.)
-5. Move files to the appropriate `Archive/YYYY/Event-Name/` folder
-6. If content is public-safe, also copy or move to `Public/`
+1. Copy them to the external library path:
+   ```bash
+   sudo rsync -aH /mnt/usb-import/photos/ /mnt/archive/external/2024/Event-Name/
+   ```
 
-After moving files, the indexing cron job will update Memories timeline and search index within the hour.
+2. Trigger a library rescan in Immich:
+   - Go to **Administration** > **External Libraries**
+   - Click **Scan** on the relevant library
 
-### Create a Public Share Link
+3. Photos appear in the timeline and become searchable
 
-1. Navigate to a file or folder in `Public/`
+### Create a Public Shared Link
+
+1. Open an album (or select individual photos)
 2. Click the share icon
-3. Click **Create a new share link**
-4. Set password (if enforced), expiration date, and permissions (Read only)
+3. Click **Create Link**
+4. Set password and expiration if desired
 5. Copy the link and distribute
 
-### Create a File Drop (Upload-Only) Link
+### Bulk Download from Immich
 
-For collecting photos from event attendees who don't have accounts:
+Admin users can download albums or selections as ZIP files through the web interface:
 
-1. Create a folder like `Uploads/Incoming/Spring-Gala-2025-Submissions/`
-2. Share it with a public link
-3. Set permissions to **File drop (upload only)**
-4. Set a password and expiration date (e.g., 2 weeks after the event)
-5. Distribute the link to attendees
-
-### Force Re-Index After Large Import
-
-If you bulk-import files directly to `/mnt/archive/` via rsync or USB:
-
-```bash
-$OCC files:scan --all
-$OCC memories:index
-$OCC preview:generate-all
-```
+1. Select photos (or open an album)
+2. Click the download icon
+3. A ZIP file is generated and downloaded
 
 ### Check Storage Usage
 
@@ -278,12 +205,26 @@ $OCC preview:generate-all
 # Overall disk usage
 df -h /mnt/archive
 
-# Top 10 largest folders in the archive
+# Top largest directories in the archive
 du -h /mnt/archive --max-depth=3 | sort -rh | head -20
 
-# Usage by Nextcloud user
-$OCC user:list --info
+# Immich uploads specifically
+du -sh /mnt/archive/immich-uploads/
+
+# External library
+du -sh /mnt/archive/external/
 ```
+
+### Rescan External Library
+
+If files were added directly to the external library folder:
+
+```bash
+# Or through the admin UI:
+# Administration > External Libraries > Scan
+```
+
+Immich will detect new files and process them (generate thumbnails, extract metadata, run ML).
 
 ---
 
@@ -302,24 +243,26 @@ docker compose down
 docker compose up -d
 ```
 
-### Nextcloud Stuck in Maintenance Mode
+### Database Connection Errors
+
+If Immich shows database errors:
 
 ```bash
-$OCC maintenance:mode --off
-```
+# Check if PostgreSQL is healthy
+docker exec immich_postgres pg_isready
 
-If the container isn't running:
+# Check PostgreSQL logs
+docker logs immich_postgres --tail 50
 
-```bash
-docker start nextcloud-aio-nextcloud
-$OCC maintenance:mode --off
+# Restart just the database
+docker compose restart database
 ```
 
 ### Slow Performance
 
-1. Check if preview generation is running in the background:
+1. Check if ML processing is running (initial import processes all photos):
    ```bash
-   docker exec nextcloud-aio-nextcloud ps aux | grep preview
+   docker logs immich_machine_learning --tail 20
    ```
 2. Check available memory:
    ```bash
@@ -329,7 +272,7 @@ $OCC maintenance:mode --off
    ```bash
    iotop -oa
    ```
-4. Increase PHP memory limit if needed (update `.env` and restart)
+4. ML processing is CPU-intensive during initial import -- it will settle down once all photos are processed
 
 ### SSL Certificate Problems
 
@@ -358,9 +301,12 @@ If one drive has failed:
 2. The server continues operating on the surviving drive
 3. See [BACKUP.md](BACKUP.md) Scenario 1 for the replacement procedure
 
-### Large Upload Failures
+### Photos Not Appearing After Upload
 
-If users report upload failures on large files:
-1. Verify `NEXTCLOUD_UPLOAD_LIMIT` in `.env` (default: 16G)
-2. Check available disk space
-3. For very large files (>10 GB), recommend using the Nextcloud desktop sync client or WebDAV instead of the web interface
+1. Check that the Immich server container is running
+2. Check server logs for processing errors:
+   ```bash
+   docker logs immich_server --tail 50
+   ```
+3. For external library files, ensure a library scan has been triggered
+4. Large uploads may take time to process -- check the **Jobs** page in Administration

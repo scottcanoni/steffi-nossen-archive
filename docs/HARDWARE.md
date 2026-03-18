@@ -2,14 +2,12 @@
 
 ## Recommended Configuration
 
-| Component | Spec | Notes |
-|---|---|---|
-| **CPU** | Modern x86-64, 4+ cores | Preview generation and video transcoding benefit from more cores |
-| **RAM** | 16 GB minimum | Nextcloud + PostgreSQL + Redis + preview rendering + search indexing |
-| **Boot drive** | 120+ GB SSD or NVMe | Ubuntu OS, Docker engine, Nextcloud AIO system volumes |
-| **Data drives** | 2x identical NAS-grade HDDs | mdadm RAID1 mirror, mounted at `/mnt/archive` |
-| **Backup drives** | 2x external USB HDDs | Capacity >= data drives; one connected, one offsite |
-| **UPS** | Battery backup | Protects against corruption from power loss during writes |
+- **CPU**: Modern x86-64, 4+ cores. Video transcoding and ML inference benefit from more cores.
+- **RAM**: 16 GB minimum. Immich's machine learning models load into memory for face detection and CLIP search. 32 GB is better if the budget allows.
+- **Boot drive**: 120+ GB SSD or NVMe. Ubuntu OS, Docker engine, PostgreSQL database.
+- **Data drive**: Large HDD (or 2x identical NAS-grade HDDs in RAID1 if available). Mounted at `/mnt/archive`. All photos, videos, and external libraries live here.
+- **Backup drives**: 2x external USB HDDs. Capacity >= data drive. One connected, one offsite.
+- **UPS**: Battery backup to protect against corruption from power loss during writes.
 
 ## Drive Layout
 
@@ -18,16 +16,15 @@
 │  SSD / NVMe (boot)                      │
 │  ├── /          Ubuntu 24.04 LTS root   │
 │  ├── /var       Docker volumes, images  │
-│  └── swap       (if configured)         │
+│  └── PostgreSQL data (fast I/O)         │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
-│  HDD 1 ──┐                             │
-│           ├── mdadm RAID1 → /dev/md0    │
-│  HDD 2 ──┘    mounted at /mnt/archive  │
+│  HDD (single drive or RAID1 pair)       │
+│  Mounted at /mnt/archive                │
 │                                         │
-│  All Nextcloud user data lives here:    │
-│    /mnt/archive/                        │
+│  /mnt/archive/immich-uploads/           │
+│  /mnt/archive/external/                 │
 └─────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────┐
@@ -54,19 +51,20 @@ Avoid desktop drives (WD Blue, Seagate Barracuda) -- they are not rated for 24/7
 
 Estimate based on archive content:
 
-| Content type | Rough size per item |
-|---|---|
-| Photo (high-res JPEG) | 5-15 MB |
-| Photo (RAW) | 25-50 MB |
-| Video (1080p, 1 hour) | 5-15 GB |
-| Video (4K, 1 hour) | 20-50 GB |
-| Scanned document (PDF) | 1-10 MB |
+- Photo (high-res JPEG): 5-15 MB
+- Photo (RAW): 25-50 MB
+- Video (1080p, 1 hour): 5-15 GB
+- Video (4K, 1 hour): 20-50 GB
 
-A 4 TB RAID1 pair gives ~4 TB usable space. Start there unless you already have a large backlog of video.
+A 4 TB drive (or 4 TB RAID1 pair) is a reasonable starting point unless you already have a large backlog of video.
+
+## GPU Acceleration (Optional)
+
+Immich's machine learning can use a GPU for faster face detection and CLIP inference. This is entirely optional -- CPU processing works fine, it just takes longer for initial import of large libraries. If the machine has an NVIDIA GPU, Immich supports CUDA acceleration.
 
 ## UPS
 
-A basic UPS (e.g., APC Back-UPS 600-900VA) is sufficient. The goal is to survive short outages and give the server time for a clean shutdown, not to run for hours. Configure the UPS to trigger an automatic shutdown after a sustained power loss using `apcupsd` or `nut`.
+A basic UPS (e.g., APC Back-UPS 600-900VA) is sufficient. The goal is to survive short outages and give the server time for a clean shutdown. Configure the UPS to trigger an automatic shutdown after a sustained power loss using `apcupsd` or `nut`.
 
 ## SMART Monitoring
 

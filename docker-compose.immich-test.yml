@@ -1,15 +1,15 @@
-# Local testing -- no SSL, no domain, no Caddy.
+# Immich local testing -- try it out before committing to the switch.
 #
 # Usage:
-#   docker compose -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.immich-test.yml up -d
 #
 # Access:
 #   http://localhost:2283
 #
 # Tear down:
-#   docker compose -f docker-compose.local.yml down -v
+#   docker compose -f docker-compose.immich-test.yml down -v
 
-name: steffi-nossen-local
+name: immich-test
 
 services:
   immich-server:
@@ -31,21 +31,18 @@ services:
       DB_PASSWORD: testpassword123
       DB_DATABASE_NAME: immich
       REDIS_HOSTNAME: redis
-    restart: unless-stopped
 
   immich-machine-learning:
     container_name: immich_machine_learning
     image: ghcr.io/immich-app/immich-machine-learning:release
     volumes:
       - model-cache:/cache
-    restart: unless-stopped
 
   redis:
     container_name: immich_redis
     image: docker.io/redis:6.2-alpine
     healthcheck:
       test: redis-cli ping || exit 1
-    restart: unless-stopped
 
   database:
     container_name: immich_postgres
@@ -63,7 +60,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    restart: unless-stopped
 
 volumes:
   upload:

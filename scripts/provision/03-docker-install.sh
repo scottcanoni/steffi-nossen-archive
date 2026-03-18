@@ -45,4 +45,4 @@ docker --version
 docker compose version
 
 echo "==> Docker installation complete."
-echo "    Next: run 04-deploy-nextcloud.sh to start Nextcloud AIO."
+echo "    Next: run 04-deploy-immich.sh to start Immich."

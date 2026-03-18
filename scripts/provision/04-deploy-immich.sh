@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Deploy Nextcloud AIO using Docker Compose.
+# Deploy Immich using Docker Compose.
 # Run from the repository root directory.
 # Assumes Docker is installed (03-docker-install.sh) and .env is configured.
 
@@ -27,9 +27,9 @@ source "$ENV_FILE"
 
 echo "==> Pre-flight checks..."
 
-if [[ ! -d "$NEXTCLOUD_DATADIR" ]]; then
-  echo "ERROR: Data directory $NEXTCLOUD_DATADIR does not exist." >&2
-  echo "Run 02-raid-setup.sh first to create and mount the RAID array." >&2
+if [[ ! -d "$(dirname "$UPLOAD_LOCATION")" ]]; then
+  echo "ERROR: Parent directory for UPLOAD_LOCATION does not exist." >&2
+  echo "Ensure /mnt/archive is mounted (run 02-raid-setup.sh or 02a-raid-recover.sh first)." >&2
   exit 1
 fi
 
@@ -39,27 +39,28 @@ if ! docker info &>/dev/null; then
   exit 1
 fi
 
-echo "    Domain:    $NEXTCLOUD_DOMAIN"
-echo "    Data dir:  $NEXTCLOUD_DATADIR"
-echo "    Memory:    $NEXTCLOUD_MEMORY_LIMIT"
-echo "    Upload:    $NEXTCLOUD_UPLOAD_LIMIT"
+echo "==> Creating storage directories..."
+mkdir -p "$UPLOAD_LOCATION"
+mkdir -p "$EXTERNAL_LIBRARY"
+mkdir -p "$DB_DATA_LOCATION"
+
+echo "    Upload location:    $UPLOAD_LOCATION"
+echo "    External library:   $EXTERNAL_LIBRARY"
+echo "    Database location:  $DB_DATA_LOCATION"
+echo "    Domain:             $IMMICH_DOMAIN"
 echo ""
 
 echo "==> Pulling container images..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
 
-echo "==> Starting Nextcloud AIO..."
+echo "==> Starting Immich..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
 
 echo ""
 echo "==> Deployment started."
 echo ""
 echo "Next steps:"
-echo "  1. Open https://<server-ip>:8080 in your browser"
-echo "  2. Complete the AIO setup wizard"
-echo "  3. Set your domain to: $NEXTCLOUD_DOMAIN"
-echo "  4. Enable desired optional containers (Talk, ClamAV, etc.)"
-echo "  5. Click 'Start containers' in the AIO dashboard"
-echo ""
-echo "Once Nextcloud is running, access it at:"
-echo "  https://$NEXTCLOUD_DOMAIN"
+echo "  1. Open https://$IMMICH_DOMAIN in your browser"
+echo "  2. Create the admin account (first user becomes admin)"
+echo "  3. Go to Administration > External Libraries to import existing photos"
+echo "  4. Share albums or create public links as needed"

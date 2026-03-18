@@ -1,254 +1,169 @@
-# Permissions & Folder Structure
+# Permissions and Access
 
-This document describes the Nextcloud groups, Team Folders, and access control rules that make up the archive's permission model.
+This document describes how user access is managed in the Immich-based archive.
 
 ## Guiding Principles
 
-1. **Folder structure is the browsing experience.** What you see in the file tree is how you navigate the archive.
-2. **Editors write to intake folders, not the archive.** New material goes into `Uploads/`. Admins curate it into `Archive/`.
-3. **Keep ACLs flat.** Top-level permission zones are easier to reason about. Avoid deeply nested permission exceptions.
-4. **Public access uses share links, not accounts.** The public never logs in.
+1. **Simple roles**: Public, Viewer, Editor, Admin -- mapped to Immich's native user and sharing model.
+2. **Editors upload to their own library**: New material goes into the editor's personal uploads. Admins curate it into shared albums.
+3. **Public access uses shared links, not accounts**: The public never logs in.
+4. **External Libraries preserve folder structure**: Existing organized folders on disk appear in Immich without re-uploading.
 
-## Groups
+## Role Definitions
 
-Create these Nextcloud groups after first login:
+### Admin
+- The first account created during setup becomes admin
+- Full control: user management, server settings, libraries, albums, all media
+- Can create and manage External Libraries
+- Can disable/enable ML features (face detection, CLIP search)
+- Keep this group very small (2-3 people maximum)
 
-| Group | Purpose |
-|---|---|
-| `admins` | Full control. Manages users, folders, shares, backups, and server. 2FA enforced. |
-| `viewers-private` | Read-only access to most archive content. Logged-in users only. |
-| `editors-uploads` | Can upload new material to `Uploads/` subfolders. 2FA enforced. |
-| `editors-alumni` | Can upload to alumni-specific areas within `Uploads/`. 2FA enforced. |
+### Editor
+- Standard Immich user account
+- Can upload photos and videos to their own library
+- Can be added as a collaborator on shared albums (with upload rights)
+- Cannot access other users' libraries directly
+- Cannot change server settings
 
-### Creating Groups
+### Viewer
+- Standard Immich user account with limited purpose
+- Receives shared albums from admins (read-only)
+- Can browse shared albums and view media
+- Cannot upload unless explicitly given collaborator access on an album
 
-In the Nextcloud admin panel:
+### Public
+- No account required
+- Access via shared links (URLs) created by admins or editors
+- Optionally password-protected
+- Optionally time-limited (expiration date)
+- Read-only: can view and download, cannot upload or modify
 
-1. Go to **Users** (top-right menu)
-2. Click **Add group** in the left sidebar
-3. Create each group listed above
+## Setting Up Users
 
-Or via the command line:
+### Creating the Admin Account
 
-```bash
-docker exec --user www-data nextcloud-aio-nextcloud \
-  php occ group:add admins
+On first launch, navigate to `http://localhost:2283` (local) or `https://your-domain.org` (production). The first account you create is the admin.
 
-docker exec --user www-data nextcloud-aio-nextcloud \
-  php occ group:add viewers-private
+### Creating Additional Users
 
-docker exec --user www-data nextcloud-aio-nextcloud \
-  php occ group:add editors-uploads
+1. Log in as admin
+2. Go to **Administration** (gear icon) > **User Management**
+3. Click **Create User**
+4. Fill in name, email, and password
+5. The user can now log in and upload to their own library
 
-docker exec --user www-data nextcloud-aio-nextcloud \
-  php occ group:add editors-alumni
-```
+### Granting Viewer-Only Access
 
-## Team Folders
+Immich does not have a built-in "viewer-only" user type. To create a viewer:
 
-Team Folders (formerly Group Folders) are the backbone of the archive. They are admin-managed shared folders visible to specific groups.
+1. Create a standard user account
+2. Share albums with them (they will see shared albums in their sidebar)
+3. Optionally, set a storage quota of 0 to prevent uploads (if supported in your Immich version), or simply instruct them not to upload
 
-### Creating Team Folders
+For truly read-only public access, use shared links instead of user accounts.
 
-Enable the **Group Folders** app first (see [APPS.md](APPS.md)), then create each folder:
+## Shared Albums
 
-```bash
-OCC="docker exec --user www-data nextcloud-aio-nextcloud php occ"
+Shared albums are the primary way to organize and distribute media in Immich.
 
-$OCC groupfolders:create Public
-$OCC groupfolders:create Archive
-$OCC groupfolders:create Uploads
-$OCC groupfolders:create Restricted
-$OCC groupfolders:create Admin
-```
+### Creating a Shared Album
 
-### Folder-to-Group Permissions Matrix
+1. Go to **Albums** in the sidebar
+2. Click **Create Album**
+3. Name it (e.g., "Spring Gala 2024", "Historical Photos 1970s")
+4. Add photos from the timeline or library
+5. Click the share icon to add users or create a public link
 
-Each cell shows the permissions granted. An empty cell means no access.
+### Sharing an Album with Users
 
-| Folder | `admins` | `viewers-private` | `editors-uploads` | `editors-alumni` | Public (share links) |
-|---|---|---|---|---|---|
-| **Public** | Read, Write, Delete, Share | Read | Read | Read | Read (via link) |
-| **Archive** | Read, Write, Delete, Share | Read | -- | -- | -- |
-| **Uploads** | Read, Write, Delete, Share | -- | Write, Read (own subfolder) | Write, Read (own subfolder) | -- |
-| **Restricted** | Read, Write, Delete, Share | Read (selected content) | -- | -- | -- |
-| **Admin** | Read, Write, Delete, Share | -- | -- | -- | -- |
-
-### Assigning Groups to Team Folders
-
-After creating each Team Folder, assign the groups and their permission levels.
-
-Via the command line (folder IDs are returned when creating them -- use `groupfolders:list` to look them up):
-
-```bash
-OCC="docker exec --user www-data nextcloud-aio-nextcloud php occ"
-
-# Get folder IDs
-$OCC groupfolders:list
-
-# Public folder (assuming ID 1)
-$OCC groupfolders:group 1 admins write share delete
-$OCC groupfolders:group 1 viewers-private read
-$OCC groupfolders:group 1 editors-uploads read
-$OCC groupfolders:group 1 editors-alumni read
-
-# Archive folder (assuming ID 2)
-$OCC groupfolders:group 2 admins write share delete
-$OCC groupfolders:group 2 viewers-private read
-
-# Uploads folder (assuming ID 3)
-$OCC groupfolders:group 3 admins write share delete
-$OCC groupfolders:group 3 editors-uploads write
-$OCC groupfolders:group 3 editors-alumni write
-
-# Restricted folder (assuming ID 4)
-$OCC groupfolders:group 4 admins write share delete
-$OCC groupfolders:group 4 viewers-private read
-
-# Admin folder (assuming ID 5)
-$OCC groupfolders:group 5 admins write share delete
-```
-
-Or via the web interface:
-
-1. Go to **Administration settings** > **Group folders**
-2. Click on each folder
-3. Add the appropriate groups and set their permissions using the checkboxes
-
-## Uploads Folder Structure
-
-Inside the `Uploads/` Team Folder, create intake subfolders:
-
-```
-Uploads/
-├── Incoming/           # General intake for editors-uploads
-│   ├── Photos/
-│   ├── Videos/
-│   └── Documents/
-├── Alumni/             # For editors-alumni group
-│   ├── Photos/
-│   └── Stories/
-└── Board/              # Board-only intake (restrict via ACL)
-```
-
-Use **Advanced Permissions** (ACLs) within the Uploads Team Folder to further restrict which subfolders each editor group can access:
-
-- `editors-uploads` → can write to `Incoming/`
-- `editors-alumni` → can write to `Alumni/`
-- `Board/` → restrict to `admins` only
-
-## Archive Folder Convention
-
-The long-term archive follows a year-and-event structure:
-
-```
-Archive/
-├── 2024/
-│   ├── Spring-Gala/
-│   │   ├── Photos/
-│   │   ├── Videos/
-│   │   └── Program.pdf
-│   ├── Summer-Intensive/
-│   └── Winter-Showcase/
-├── 2023/
-│   └── ...
-├── Historical/          # Pre-digital or undated material
-│   ├── 1970s/
-│   ├── 1980s/
-│   └── Undated/
-└── Documents/           # Board minutes, newsletters, etc.
-    ├── Board-Minutes/
-    └── Newsletters/
-```
-
-Only admins can create, move, or delete content here. Viewers get read-only access.
-
-## Public Share Links
-
-For content in the `Public/` folder that should be accessible without a Nextcloud account:
-
-### Admin Settings for Share Links
-
-1. Go to **Administration settings** > **Sharing**
-2. Configure these policies:
-   - **Enforce password protection** for public links: Recommended ON for most content
-   - **Set default expiration date**: Recommended ON (e.g., 90 days)
-   - **Allow uploads via public link**: OFF (use editor accounts for uploads)
-   - **Allow resharing**: OFF
-
-### Creating a Public Link
-
-1. Navigate to the file or folder in the `Public/` Team Folder
+1. Open the album
 2. Click the share icon
-3. Click **Create a new share link**
-4. Set a password if required by policy
-5. Set an expiration date
-6. Set permissions to **Read only**
-7. Copy and distribute the link
+3. Search for a user by name or email
+4. Choose their permission level:
+   - **Viewer**: Can view but not add photos
+   - **Editor/Collaborator**: Can add photos to the album
 
-### File Drop Links (Upload-Only)
+### Creating a Public Shared Link
 
-For collecting material from people without accounts (e.g., event attendees submitting photos):
+1. Open the album
+2. Click the share icon
+3. Click **Create Link**
+4. Configure options:
+   - **Password**: Recommended for sensitive content
+   - **Expiration**: Set a date when the link stops working
+   - **Allow downloads**: Toggle on/off
+   - **Show metadata**: Toggle on/off
+5. Copy the link and distribute (email, website, social media)
 
-1. Create a folder under `Uploads/Incoming/`
-2. Share it with a public link
-3. Set permissions to **File drop (upload only)**
-4. Set a password and expiration date
+## External Libraries
 
-Contributors can upload but cannot see other people's uploads.
+External Libraries let Immich watch existing folders on the server's filesystem. This is how the archive's existing folder structure gets into Immich without re-uploading everything.
 
-## Files Access Control Rules
+### How It Works
 
-The **Files Access Control** app (see [APPS.md](APPS.md)) adds rule-based enforcement beyond folder permissions. Configure these rules in **Administration settings** > **Flow**:
+1. Organize photos/videos on disk in a folder structure:
+   ```
+   /mnt/archive/external/
+   ├── 2024/
+   │   ├── Spring-Gala/
+   │   │   ├── Photos/
+   │   │   └── Videos/
+   │   └── Summer-Intensive/
+   ├── 2023/
+   │   └── ...
+   └── Historical/
+       ├── 1970s/
+       └── 1980s/
+   ```
 
-### Recommended Rules
+2. In the `docker-compose.yml`, this path is mounted read-only into the Immich container:
+   ```yaml
+   volumes:
+     - /mnt/archive/external:/mnt/archive/external:ro
+   ```
 
-1. **Block downloads from Restricted folder for non-admins**
-   - Condition: File is in `Restricted/` AND user is not in group `admins`
-   - Action: Block download
+3. In the Immich admin panel, create an External Library pointing to `/mnt/archive/external`
 
-2. **Block delete on Archive for non-admins**
-   - Condition: File is in `Archive/` AND user is not in group `admins`
-   - Action: Block delete
+4. Immich scans the folder, generates thumbnails, extracts metadata, and makes everything searchable -- without moving or copying files
 
-3. **Block sharing from Restricted folder**
-   - Condition: File is in `Restricted/`
-   - Action: Block sharing (only admins should decide what leaves Restricted)
+### Adding New Content to the External Library
 
-## Files Automated Tagging Rules
+To add new photos to the external library:
 
-The **Files Automated Tagging** app auto-applies collaborative tags based on rules. Configure in **Administration settings** > **Flow**:
+1. Copy or move files into the folder structure on disk (via rsync, scp, USB, etc.)
+2. In Immich, trigger a library rescan: **Administration** > **External Libraries** > **Scan**
+3. New files appear in the timeline and search
 
-### Recommended Tags and Rules
+### When to Use External Libraries vs. Uploads
 
-| Tag | Applied When | Purpose |
-|---|---|---|
-| `incoming` | File uploaded to `Uploads/` | Marks new content for admin review |
-| `public-ready` | File is in `Public/` | Confirms content is cleared for sharing |
-| `restricted` | File is in `Restricted/` | Flags sensitive content |
-| `needs-review` | File uploaded by `editors-alumni` | Alumni content should be reviewed before archiving |
+- **External Library**: For the curated, organized archive that admins maintain on disk. Read-only in Immich.
+- **Uploads**: For new material coming in from editors. Managed through Immich's UI.
 
-Create the tags first in **Administration settings** > **Basic settings** > **Collaborative tags** (they must be "invisible" or "restricted" tags so that non-admins cannot remove them).
+## Suggested Album Structure
 
-## 2FA Enforcement
+Map the archive's organizational structure to albums:
 
-Enforce TOTP two-factor authentication for privileged groups:
+- **By event**: "Spring Gala 2024", "Winter Showcase 2023"
+- **By year**: "Archive 2024", "Archive 2023"
+- **By category**: "Historical Photos", "Board Events", "Alumni"
+- **By access level**: "Public Highlights" (shared via link), "Internal Archive" (shared with viewer accounts)
 
-1. Enable the **Two-Factor TOTP Provider** app
-2. Go to **Administration settings** > **Security**
-3. Under **Enforce two-factor authentication**, add:
-   - `admins`
-   - `editors-uploads`
-   - `editors-alumni`
-4. `viewers-private` can be left optional unless the organization requires it
+## Admin Workflow: Curating Uploads into the Archive
 
-## Adding a New User -- Quick Reference
+1. Editor uploads photos through the Immich web or mobile app
+2. Admin reviews uploads in the editor's shared album or directly
+3. Admin downloads selected photos and places them into the external library folder structure on disk
+4. Admin triggers a library rescan
+5. Photos are now part of the permanent archive
 
-1. Go to **Users** in the admin panel
-2. Click **New user**
-3. Fill in username, display name, email, password
-4. Add them to the appropriate group(s)
-5. They will see the Team Folders assigned to their group(s) automatically
-6. If in an enforced 2FA group, they will be prompted to set up TOTP on first login
+Alternatively, admins can create shared albums directly from uploaded content without moving files to the external library. The external library approach is better for long-term preservation since the folder structure on disk is the source of truth.
 
-See [RUNBOOK.md](RUNBOOK.md) for detailed user management procedures.
+## Disabling Face Recognition
+
+If the organization's policies require it, face recognition can be disabled:
+
+1. Go to **Administration** > **Machine Learning**
+2. Toggle **Facial Recognition** off
+3. Existing face data is retained but no new faces are detected
+
+CLIP-based search can remain enabled independently of face recognition.

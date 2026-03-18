@@ -39,10 +39,7 @@ ufw default deny incoming
 ufw default allow outgoing
 ufw allow ssh
 ufw allow 80/tcp    # HTTP (redirect to HTTPS)
-ufw allow 443/tcp   # HTTPS
-ufw allow 8080/tcp  # Nextcloud AIO dashboard
-ufw allow 3478/tcp  # STUN (Nextcloud Talk)
-ufw allow 3478/udp
+ufw allow 443/tcp   # HTTPS (Immich via Caddy)
 ufw --force enable
 
 echo "==> Enabling fail2ban..."

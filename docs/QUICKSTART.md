@@ -1,6 +1,6 @@
 # Quick-Start Testing Guide
 
-Test the archive setup on your own computer before the server hardware arrives. This runs a throwaway Nextcloud instance locally so you can explore the interface, practice creating groups and folders, test permissions, and get comfortable with the system.
+Test the archive on your own computer before the server hardware arrives. This runs a throwaway Immich instance locally so you can explore the interface, upload photos, browse timelines, and test sharing -- all before the real server exists.
 
 Nothing you do here affects production. When you're done, tear it all down with one command.
 
@@ -30,181 +30,141 @@ cd steffi-nossen-archive
 
 ## Step 2 -- Start the Local Test Instance
 
-Run the local-only compose file (no SSL, no domain required):
-
 ```bash
 docker compose -f docker-compose.local.yml up -d
 ```
 
-This pulls the Nextcloud AIO image and starts the master container. It may take a few minutes on the first run.
+This pulls the Immich images (server, machine learning, PostgreSQL, Redis) and starts everything. The first run takes a few minutes while images download and the ML models initialize.
 
-## Step 3 -- Open the AIO Dashboard
+## Step 3 -- Open Immich
 
 Open your browser and go to:
 
 ```
-https://localhost:8080
+http://localhost:2283
 ```
 
-Your browser will warn about a self-signed certificate. This is expected for local testing -- click through the warning (Advanced > Proceed / Accept Risk).
+No HTTPS warnings, no certificates -- it just works locally.
 
-The AIO dashboard will show you a **passphrase**. Save this -- you need it to log back in to the dashboard.
+## Step 4 -- Create the Admin Account
 
-## Step 4 -- Complete the Setup Wizard
+The first account you create becomes the administrator. Fill in:
 
-1. In the AIO dashboard, set the domain to `localhost`
-2. Skip any optional containers for now (you can enable ClamAV, Talk, etc. later)
-3. Click **Start containers**
-4. Wait for all containers to start (this takes 2-5 minutes)
-5. Once ready, the dashboard shows a link to your Nextcloud instance and the **initial admin password**
+- Email address (can be anything for testing, e.g., `admin@test.local`)
+- Password
+- Name
 
-## Step 5 -- Log In to Nextcloud
+Click **Sign Up**, then log in.
 
-Go to:
+## Step 5 -- Upload Sample Photos
 
-```
-https://localhost:8443
-```
+1. Click the **Upload** button (cloud icon in the top right)
+2. Select a few photos from your computer
+3. Immich will process them -- generating thumbnails, extracting metadata, and running ML models
+4. After processing, photos appear in the **Timeline** view
 
-Accept the self-signed certificate warning again. Log in with:
-- Username: `admin`
-- Password: (the one shown in the AIO dashboard)
+Try uploading:
+- A few JPEGs to see timeline and map features
+- A short video clip to test video playback and transcoding
+- Photos with faces to test face recognition (appears under **People** in the sidebar)
 
-You now have a working Nextcloud instance.
+## Step 6 -- Explore Key Features
 
-## Step 6 -- Test the Permission Model
+### Timeline
+Click **Timeline** in the sidebar to browse photos chronologically. Photos are grouped by date automatically based on EXIF metadata.
 
-Walk through the setup described in [PERMISSIONS.md](PERMISSIONS.md):
+### Search
+Click the search bar and try typing a description like "outdoor" or "group photo". Immich uses CLIP-based search to find photos by meaning, not just filename.
 
-### Create Groups
+### People
+After face recognition runs (may take a few minutes), click **People** in the sidebar to see faces grouped automatically. You can name people by clicking on a face cluster.
 
-1. Click your profile icon (top right) > **Users**
-2. In the left sidebar, click **Add group**
-3. Create: `admins`, `viewers-private`, `editors-uploads`, `editors-alumni`
+### Albums
+1. Click **Albums** in the sidebar
+2. Click **Create Album**
+3. Add a name and select some photos
+4. Albums are a key organizational tool for the archive
 
-### Install Group Folders
+### Map
+If your photos have GPS data, click **Map** in the sidebar to see them plotted on a map.
 
-1. Click your profile icon > **Apps**
-2. Search for "Group folders"
-3. Click **Download and enable**
+## Step 7 -- Test Sharing
 
-### Create Team Folders
+### Shared Albums
+1. Create an album
+2. Click the share icon on the album
+3. If you create a second user account, you can share the album with them
 
-1. Go to **Administration settings** (profile icon > Administration settings)
-2. Click **Group folders** in the left sidebar
-3. Create each folder: `Public`, `Archive`, `Uploads`, `Restricted`, `Admin`
-4. For each folder, add the appropriate groups with the permissions from [PERMISSIONS.md](PERMISSIONS.md)
+### Shared Links (Public Access)
+1. Open an album
+2. Click the share icon, then **Create Link**
+3. Optionally set a password and expiration date
+4. Copy the link -- anyone with it can view the album without logging in
 
-### Create Test Users
+This is how the **Public** role works: share links give read-only access without an account.
 
-1. Go to **Users**
-2. Create a few test accounts:
-   - `test-viewer` -- add to `viewers-private`
-   - `test-editor` -- add to `editors-uploads`
-3. Open a private/incognito browser window
-4. Log in as `test-viewer` at `https://localhost:8443`
-5. Confirm they can see `Public` and `Archive` but cannot upload
-6. Log in as `test-editor`
-7. Confirm they can upload to `Uploads/` but cannot write to `Archive/`
+### Create a Test Viewer
+1. Go to **Administration** (gear icon in the sidebar) > **User Management**
+2. Click **Create User**
+3. Create a user like `viewer@test.local`
+4. Log in as that user in a private/incognito window
+5. Confirm they see only what has been shared with them
 
-## Step 7 -- Test Media Features
+## Step 8 -- Test External Library (Optional)
 
-### Upload Sample Content
+External Libraries let Immich watch a folder on your local disk:
 
-1. Log in as admin
-2. Navigate to `Archive/`
-3. Create a subfolder like `2024/Spring-Gala/Photos/`
-4. Upload a few photos (JPEGs work best for testing)
-5. Upload a short video clip if you have one
+1. Go to **Administration** > **External Libraries**
+2. Create a new library for a user
+3. Set the import path to a folder inside the container (for local testing, you'd need to add a volume mount to the compose file pointing to a local folder)
 
-### Install and Test Memories
+This is how existing organized folder structures will be imported on the production server without re-uploading.
 
-1. Go to **Apps** > search "Memories" > **Download and enable**
-2. Go to **Administration settings** > **Memories** and review the config
-3. Run the indexer from the AIO dashboard or wait for cron
-4. Click the **Memories** icon in the top navigation bar
-5. Confirm your uploaded photos appear in a timeline view
+## Step 9 -- Explore Admin Settings
 
-### Test Preview Generation
+Go to **Administration** (gear icon) and explore:
 
-1. Go to **Apps** > search "Preview Generator" > **Download and enable**
-2. After installation, browse your uploaded photos
-3. Thumbnails should render without long delays
-
-## Step 8 -- Test the Backup Script (Optional)
-
-You can test the backup script logic locally, though it won't run the full RAID/USB workflow:
-
-```bash
-# Create a fake backup target
-mkdir -p /tmp/test-backup
-
-# Review what the script does (read-only)
-cat scripts/backup.sh
-```
-
-The real backup testing happens on the production server with actual USB drives.
-
-## Step 9 -- Explore Other Apps
-
-Try installing the Day 1 and Day 2 apps from [APPS.md](APPS.md) to see how they work:
-
-- **Files Access Control** -- set up a test rule
-- **Files Automated Tagging** -- create a tag and an auto-tagging rule
-- **MetaVox** -- add custom metadata fields to a file
-- **AutoRename** -- configure a rename pattern and upload a file
-
-Not everything will work perfectly in a local test (e.g., full-text search needs Elasticsearch which is resource-heavy), but you'll get a good feel for the interface and workflow.
+- **Machine Learning**: Toggle face detection and CLIP search on/off
+- **Video Transcoding**: Configure transcoding settings
+- **Storage Template**: Customize how uploaded files are organized on disk
+- **User Management**: Create, disable, and manage users
+- **Server Settings**: Customize the instance name and theme
 
 ## Tear Down
 
 When you're done testing, remove everything:
 
 ```bash
-# Stop and remove all containers
-docker compose -f docker-compose.local.yml down
-
-# Remove all data volumes (starts fresh next time)
+# Stop and remove all containers and volumes (clean slate)
 docker compose -f docker-compose.local.yml down -v
-
-# Remove AIO's sibling containers (AIO creates these outside compose)
-docker stop $(docker ps -q --filter "name=nextcloud-aio-") 2>/dev/null
-docker rm $(docker ps -aq --filter "name=nextcloud-aio-") 2>/dev/null
-
-# Remove AIO volumes
-docker volume ls --filter "name=nextcloud_aio" -q | xargs -r docker volume rm
 ```
 
 This deletes all test data. Nothing persists after teardown.
 
 ## What This Test Validates
 
-| Area | What you're confirming |
-|---|---|
-| AIO deployment | Docker pulls the right images, containers start |
-| Nextcloud UI | Login, navigation, file browsing all work |
-| Group Folders | Team Folders appear for the right groups |
-| Permissions | Viewers can't write, editors can only write to Uploads |
-| Memories | Photos appear in timeline, video playback works |
-| Preview Generator | Thumbnails render without excessive delay |
-| App installation | Day 1 and Day 2 apps install and are configurable |
+- Immich deployment: Docker pulls the right images, containers start
+- Web UI: Login, navigation, timeline browsing all work
+- Photo processing: Thumbnails generate, metadata is extracted
+- Face recognition: People are detected and grouped
+- Search: CLIP search returns relevant results
+- Albums and sharing: Albums can be created, shared with users and via public links
+- Video: Playback and transcoding work
 
 ## What This Test Does NOT Validate
 
-| Area | Why it can't be tested locally |
-|---|---|
-| RAID1 setup | Requires 2 physical HDDs |
-| SSL certificates | Requires a real domain and public IP |
-| Port forwarding | Requires router access |
-| USB backup | Requires physical USB drives |
-| Upload speed | Requires the building's internet connection |
-| ClamAV performance | Resource-heavy; may be slow on a laptop |
+- RAID1 setup: Requires 2 physical HDDs
+- SSL certificates: Requires a real domain and public IP
+- Port forwarding: Requires router access
+- USB backup: Requires physical USB drives
+- Upload speed: Requires the building's internet connection
+- External Libraries at scale: Requires the actual archive folder structure
 
 These are tested during the real deployment on the production server.
 
 ## Next Steps After Testing
 
-Once you're comfortable with the interface and workflow:
+Once you're comfortable with the interface:
 
 1. Order the hardware ([HARDWARE.md](HARDWARE.md))
 2. Confirm the static IP and domain name ([NETWORK.md](NETWORK.md))
